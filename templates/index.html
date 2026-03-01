@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>IDS Dashboard | Custom Log-Based Intrusion Detection</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- Feather Icons -->
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+
+  <style>
+    /* ── Reset & Base ─────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --border:   #30363d;
+      --text:     #e6edf3;
+      --muted:    #8b949e;
+      --accent:   #58a6ff;
+
+      --critical: #ff4c4c;
+      --high:     #ff7b2e;
+      --medium:   #f0c027;
+      --low:      #58a6ff;
+      --info:     #8b949e;
+      --green:    #3fb950;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Top Nav ──────────────────────────────────────── */
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .nav-brand .shield { color: var(--accent); }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--green);
+      font-weight: 600;
+    }
+    .live-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .last-scan-text {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ── Buttons ──────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #0d1117;
+      border-color: var(--accent);
+    }
+    .btn-primary:hover { background: #79c0ff; }
+    .btn-danger {
+      background: transparent;
+      color: var(--critical);
+      border-color: var(--critical);
+    }
+    .btn-danger:hover { background: rgba(255,76,76,0.1); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Layout ───────────────────────────────────────── */
+    main { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+    /* ── Stat Cards ───────────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 900px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+    .stat-card.total::before  { background: var(--accent); }
+    .stat-card.critical::before { background: var(--critical); }
+    .stat-card.high::before   { background: var(--high); }
+    .stat-card.medium::before { background: var(--medium); }
+    .stat-card.low::before    { background: var(--low); }
+
+    .stat-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .stat-card.total .stat-value   { color: var(--accent); }
+    .stat-card.critical .stat-value{ color: var(--critical); }
+    .stat-card.high .stat-value    { color: var(--high); }
+    .stat-card.medium .stat-value  { color: var(--medium); }
+    .stat-card.low .stat-value     { color: var(--low); }
+
+    /* ── Charts Row ───────────────────────────────────── */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.6fr 1.4fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 1100px) {
+      .charts-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 700px) {
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .chart-wrap { position: relative; height: 200px; }
+
+    /* ── Alerts Table ─────────────────────────────────── */
+    .table-card { margin-bottom: 24px; }
+    .table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .table-filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .search-input, .filter-select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .search-input { width: 220px; }
+    .search-input:focus, .filter-select:focus { border-color: var(--accent); }
+
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead th {
+      text-align: left;
+      padding: 10px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+      cursor: pointer;
+    }
+    tbody tr:hover { background: rgba(88,166,255,0.04); }
+    tbody td {
+      padding: 10px 12px;
+      vertical-align: middle;
+    }
+    td.mono { font-family: 'Courier New', monospace; font-size: 12px; }
+
+    /* ── Severity Badges ──────────────────────────────── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .badge-critical { background: rgba(255,76,76,0.15); color: var(--critical); border: 1px solid rgba(255,76,76,0.3); }
+    .badge-high     { background: rgba(255,123,46,0.15); color: var(--high);     border: 1px solid rgba(255,123,46,0.3); }
+    .badge-medium   { background: rgba(240,192,39,0.15); color: var(--medium);   border: 1px solid rgba(240,192,39,0.3); }
+    .badge-low      { background: rgba(88,166,255,0.15); color: var(--low);      border: 1px solid rgba(88,166,255,0.3); }
+
+    /* ── Modal ────────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      max-width: 680px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-header h3 { font-size: 15px; font-weight: 700; }
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 20px;
+      line-height: 1;
+    }
+    .modal-body { padding: 20px; }
+    .detail-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+    .detail-label {
+      color: var(--muted);
+      font-weight: 600;
+      min-width: 130px;
+    }
+    .detail-value { color: var(--text); word-break: break-all; }
+    .evidence-block {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .mitre-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(88,166,255,0.1);
+      border: 1px solid rgba(88,166,255,0.25);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* ── Toast ────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 18px;
+      font-size: 13px;
+      display: none;
+      z-index: 300;
+      max-width: 320px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    #toast.show { display: block; animation: slideIn 0.2s ease; }
+    @keyframes slideIn {
+      from { transform: translateY(12px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    /* ── Empty State ──────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 48px 0;
+      color: var(--muted);
+    }
+    .empty-state svg { width: 40px; height: 40px; margin-bottom: 12px; opacity: 0.4; }
+    .empty-state p { font-size: 14px; }
+
+    /* ── Scrollbar ────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ── Navigation ──────────────────────────────────────── -->
+<nav>
+  <div class="nav-brand">
+    <span class="shield">⛨</span>
+    IDS Dashboard
+    <span style="color:var(--muted); font-weight:400; font-size:12px;">Custom Log-Based Intrusion Detection</span>
+  </div>
+  <div class="nav-right">
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      LIVE
+    </div>
+    <span class="last-scan-text" id="lastScanText">Last scan: —</span>
+    <button class="btn btn-danger" id="clearBtn" onclick="clearAlerts()">
+      <i data-feather="trash-2" style="width:13px;height:13px;"></i> Clear
+    </button>
+    <button class="btn btn-primary" id="scanBtn" onclick="runScan()">
+      <i data-feather="refresh-cw" style="width:13px;height:13px;" id="scanIcon"></i> Run Scan
+    </button>
+  </div>
+</nav>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card total">
+      <div class="stat-label">Total Alerts</div>
+      <div class="stat-value" id="statTotal">—</div>
+    </div>
+    <div class="stat-card critical">
+      <div class="stat-label">Critical</div>
+      <div class="stat-value" id="statCritical">—</div>
+    </div>
+    <div class="stat-card high">
+      <div class="stat-label">High</div>
+      <div class="stat-value" id="statHigh">—</div>
+    </div>
+    <div class="stat-card medium">
+      <div class="stat-label">Medium</div>
+      <div class="stat-value" id="statMedium">—</div>
+    </div>
+    <div class="stat-card low">
+      <div class="stat-label">Low</div>
+      <div class="stat-value" id="statLow">—</div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-grid">
+    <!-- Severity Donut -->
+    <div class="card">
+      <div class="card-title"><i data-feather="pie-chart" style="width:14px;height:14px;"></i> Severity</div>
+      <div class="chart-wrap"><canvas id="severityChart"></canvas></div>
+    </div>
+    <!-- Timeline -->
+    <div class="card">
+      <div class="card-title"><i data-feather="activity" style="width:14px;height:14px;"></i> Alerts Over Time</div>
+      <div class="chart-wrap"><canvas id="timelineChart"></canvas></div>
+    </div>
+    <!-- Top IPs -->
+    <div class="card">
+      <div class="card-title"><i data-feather="globe" style="width:14px;height:14px;"></i> Top Attacking IPs</div>
+      <div class="chart-wrap"><canvas id="ipChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Alerts Table -->
+  <div class="card table-card">
+    <div class="table-header">
+      <div class="card-title" style="margin:0;">
+        <i data-feather="alert-triangle" style="width:14px;height:14px;"></i>
+        Alert Feed
+        <span id="alertCount" style="color:var(--muted); font-weight:400; font-size:12px;"></span>
+      </div>
+      <div class="table-filters">
+        <input class="search-input" type="text" id="searchInput" placeholder="Search alerts..." oninput="filterTable()">
+        <select class="filter-select" id="severityFilter" onchange="filterTable()">
+          <option value="">All Severities</option>
+          <option value="CRITICAL">Critical</option>
+          <option value="HIGH">High</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="LOW">Low</option>
+        </select>
+        <select class="filter-select" id="ruleFilter" onchange="filterTable()">
+          <option value="">All Rules</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Severity</th>
+            <th>Rule</th>
+            <th>Source IP</th>
+            <th>Target Users</th>
+            <th>Events</th>
+            <th>MITRE</th>
+            <th>Timestamp</th>
+          </tr>
+        </thead>
+        <tbody id="alertTableBody">
+          <tr><td colspan="7">
+            <div class="empty-state">
+              <i data-feather="shield" style="width:40px;height:40px;display:block;margin:0 auto 12px;opacity:0.3;"></i>
+              <p>Loading alerts...</p>
+            </div>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<!-- ── Alert Detail Modal ───────────────────────────────── -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Alert Detail</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- ── Toast ────────────────────────────────────────────── -->
+<div id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────
+let allAlerts = [];
+let severityChart, timelineChart, ipChart;
+
+// ── Chart defaults ─────────────────────────────────────────
+Chart.defaults.color = '#8b949e';
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+Chart.defaults.font.size = 11;
+
+// ── Init ───────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  feather.replace();
+  initCharts();
+  refresh();
+  setInterval(refresh, 5000); // auto-refresh every 5s
+});
+
+// ── Refresh all data ───────────────────────────────────────
+async function refresh() {
+  await Promise.all([fetchStats(), fetchAlerts()]);
+}
+
+// ── Fetch stats and update cards/charts ────────────────────
+async function fetchStats() {
+  try {
+    const res = await fetch('/api/stats');
+    const s = await res.json();
+
+    // Cards
+    document.getElementById('statTotal').textContent    = s.total;
+    document.getElementById('statCritical').textContent = s.critical;
+    document.getElementById('statHigh').textContent     = s.high;
+    document.getElementById('statMedium').textContent   = s.medium;
+    document.getElementById('statLow').textContent      = s.low;
+
+    // Last scan
+    if (s.last_scan) {
+      const d = new Date(s.last_scan);
+      document.getElementById('lastScanText').textContent =
+        'Last scan: ' + d.toLocaleTimeString();
+    }
+
+    // Update charts
+    updateSeverityChart(s.by_severity);
+    updateTimelineChart(s.over_time_labels, s.over_time_values);
+    updateIpChart(s.top_ips);
+
+    // Populate rule filter dropdown
+    populateRuleFilter(Object.keys(s.top_rules));
+
+  } catch(e) { console.error('Stats fetch failed', e); }
+}
+
+// ── Fetch alerts and render table ─────────────────────────
+async function fetchAlerts() {
+  try {
+    const res = await fetch('/api/alerts?limit=200');
+    allAlerts = await res.json();
+    renderTable(allAlerts);
+  } catch(e) { console.error('Alerts fetch failed', e); }
+}
+
+// ── Render table ───────────────────────────────────────────
+function renderTable(alerts) {
+  const tbody = document.getElementById('alertTableBody');
+  document.getElementById('alertCount').textContent =
+    `(${alerts.length} alert${alerts.length !== 1 ? 's' : ''})`;
+
+  if (!alerts.length) {
+    tbody.innerHTML = `<tr><td colspan="7">
+      <div class="empty-state">
+        <p>✅ No alerts found. Run a scan or adjust filters.</p>
+      </div>
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = alerts.map((a, i) => `
+    <tr onclick="showDetail(${i})">
+      <td>${severityBadge(a.severity)}</td>
+      <td style="font-weight:600;">${formatRule(a.rule_name || '')}</td>
+      <td class="mono">${a.source_ip || '<span style="color:var(--muted)">—</span>'}</td>
+      <td class="mono">${(a.target_users || []).join(', ') || '<span style="color:var(--muted)">—</span>'}</td>
+      <td><strong>${a.event_count || 0}</strong>
+        <span style="color:var(--muted);font-size:11px;"> / ${a.threshold || '?'}</span>
+      </td>
+      <td>
+        <span class="mitre-tag" style="font-size:11px;">
+          ${a.mitre_attack?.technique_id || 'N/A'}
+        </span>
+      </td>
+      <td class="mono" style="color:var(--muted);font-size:11px;">${formatTs(a.timestamp)}</td>
+    </tr>
+  `).join('');
+}
+
+// ── Filter table ───────────────────────────────────────────
+function filterTable() {
+  const search   = document.getElementById('searchInput').value.toLowerCase();
+  const severity = document.getElementById('severityFilter').value;
+  const rule     = document.getElementById('ruleFilter').value;
+
+  const filtered = allAlerts.filter(a => {
+    if (severity && a.severity !== severity) return false;
+    if (rule && a.rule_name !== rule) return false;
+    if (search) {
+      const blob = JSON.stringify(a).toLowerCase();
+      if (!blob.includes(search)) return false;
+    }
+    return true;
+  });
+  renderTable(filtered);
+}
+
+// ── Show alert detail modal ────────────────────────────────
+function showDetail(idx) {
+  const a = allAlerts[idx];
+  if (!a) return;
+
+  document.getElementById('modalTitle').innerHTML =
+    `${severityBadge(a.severity)} &nbsp; ${formatRule(a.rule_name || '')}`;
+
+  const mitre = a.mitre_attack || {};
+  const evidence = (a.evidence || []).join('\n');
+
+  document.getElementById('modalBody').innerHTML = `
+    <div class="detail-row"><span class="detail-label">Alert ID</span>
+      <span class="detail-value mono">${a.alert_id || '—'}</span></div>
+    <div class="detail-row"><span class="detail-label">Description</span>
+      <span class="detail-value">${a.description || '—'}</span></div>
+    <div class="detail-row"><span class="detail-label">Source IP</span>
+      <span class="detail-value mono">${a.source_ip || '—'}</span></div>
+    <div class="detail-row"><span class="detail-label">Hostname</span>
+      <span class="detail-value mono">${a.hostname || '—'}</span></div>
+    <div class="detail-row"><span class="detail-label">Target Users</span>
+      <span class="detail-value mono">${(a.target_users||[]).join(', ') || '—'}</span></div>
+    <div class="detail-row"><span class="detail-label">Event Count</span>
+      <span class="detail-value">${a.event_count} events / threshold ${a.threshold} in ${a.time_window}s window</span></div>
+    <div class="detail-row"><span class="detail-label">First Seen</span>
+      <span class="detail-value mono">${a.first_seen || '—'}</span></div>
+    <div class="detail-row"><span class="detail-label">Last Seen</span>
+      <span class="detail-value mono">${a.last_seen || '—'}</span></div>
+    <div class="detail-row"><span class="detail-label">Log Source</span>
+      <span class="detail-value">${a.log_source || '—'}</span></div>
+    <div class="detail-row" style="flex-direction:column; gap:8px;">
+      <span class="detail-label">MITRE ATT&amp;CK</span>
+      <span class="mitre-tag">${mitre.technique_id || 'N/A'} — ${mitre.technique_name || '—'}</span>
+      <span style="font-size:12px; color:var(--muted);">Tactic: ${mitre.tactic || '—'}</span>
+    </div>
+    ${evidence ? `
+    <div class="detail-row" style="flex-direction:column; gap:8px; margin-top:4px;">
+      <span class="detail-label">Evidence</span>
+      <div class="evidence-block">${escapeHtml(evidence)}</div>
+    </div>` : ''}
+  `;
+
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('modalOverlay')) {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
+
+// ── Run scan ───────────────────────────────────────────────
+async function runScan() {
+  const btn  = document.getElementById('scanBtn');
+  const icon = document.getElementById('scanIcon');
+  btn.disabled = true;
+  icon.style.animation = 'spin 1s linear infinite';
+
+  const style = document.createElement('style');
+  style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+  document.head.appendChild(style);
+
+  try {
+    const res  = await fetch('/api/scan', { method: 'POST' });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      showToast(`✅ Scan complete — ${data.new_alerts} new alert(s) detected`);
+      await refresh();
+    } else {
+      showToast(`⚠️ ${data.message}`, true);
+    }
+  } catch(e) {
+    showToast('❌ Scan failed. Is the server running?', true);
+  } finally {
+    btn.disabled = false;
+    icon.style.animation = '';
+  }
+}
+
+// ── Clear alerts ───────────────────────────────────────────
+async function clearAlerts() {
+  if (!confirm('Clear all saved alerts? This cannot be undone.')) return;
+  try {
+    await fetch('/api/alerts/clear', { method: 'POST' });
+    showToast('🗑️ All alerts cleared');
+    await refresh();
+  } catch(e) {
+    showToast('❌ Failed to clear alerts', true);
+  }
+}
+
+// ── Charts ─────────────────────────────────────────────────
+function initCharts() {
+  const gridColor = 'rgba(48,54,61,0.8)';
+
+  severityChart = new Chart(
+    document.getElementById('severityChart').getContext('2d'), {
+    type: 'doughnut',
+    data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderWidth: 0, hoverOffset: 4 }] },
+    options: {
+      cutout: '70%',
+      plugins: {
+        legend: { position: 'right', labels: { boxWidth: 10, padding: 14 } }
+      }
+    }
+  });
+
+  timelineChart = new Chart(
+    document.getElementById('timelineChart').getContext('2d'), {
+    type: 'line',
+    data: { labels: [], datasets: [{
+      label: 'Alerts',
+      data: [],
+      borderColor: '#58a6ff',
+      backgroundColor: 'rgba(88,166,255,0.1)',
+      fill: true,
+      tension: 0.4,
+      pointRadius: 3,
+      pointBackgroundColor: '#58a6ff'
+    }]},
+    options: {
+      scales: {
+        x: { grid: { color: gridColor }, ticks: { maxTicksLimit: 6 } },
+        y: { grid: { color: gridColor }, beginAtZero: true, ticks: { stepSize: 1 } }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  ipChart = new Chart(
+    document.getElementById('ipChart').getContext('2d'), {
+    type: 'bar',
+    data: { labels: [], datasets: [{
+      label: 'Alerts',
+      data: [],
+      backgroundColor: 'rgba(255,123,46,0.7)',
+      borderRadius: 4
+    }]},
+    options: {
+      indexAxis: 'y',
+      scales: {
+        x: { grid: { color: gridColor }, beginAtZero: true, ticks: { stepSize: 1 } },
+        y: { grid: { display: false }, ticks: { font: { family: 'Courier New', size: 10 } } }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+function updateSeverityChart(bySeverity) {
+  const order  = ['CRITICAL','HIGH','MEDIUM','LOW'];
+  const colors = { CRITICAL:'#ff4c4c', HIGH:'#ff7b2e', MEDIUM:'#f0c027', LOW:'#58a6ff' };
+  const labels = order.filter(s => bySeverity[s] > 0);
+  const data   = labels.map(s => bySeverity[s] || 0);
+  const bgColors = labels.map(s => colors[s]);
+
+  severityChart.data.labels = labels;
+  severityChart.data.datasets[0].data = data;
+  severityChart.data.datasets[0].backgroundColor = bgColors;
+  severityChart.update('none');
+}
+
+function updateTimelineChart(labels, values) {
+  timelineChart.data.labels = labels.map(l => {
+    const d = new Date(l);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  });
+  timelineChart.data.datasets[0].data = values;
+  timelineChart.update('none');
+}
+
+function updateIpChart(topIps) {
+  const entries = Object.entries(topIps).sort((a,b) => b[1]-a[1]).slice(0,6);
+  ipChart.data.labels = entries.map(e => e[0]);
+  ipChart.data.datasets[0].data = entries.map(e => e[1]);
+  ipChart.update('none');
+}
+
+// ── Helpers ────────────────────────────────────────────────
+function severityBadge(sev) {
+  const cls = { CRITICAL:'badge-critical', HIGH:'badge-high', MEDIUM:'badge-medium', LOW:'badge-low' };
+  return `<span class="badge ${cls[sev] || ''}">${sev || '—'}</span>`;
+}
+
+function formatRule(rule) {
+  return rule.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function formatTs(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  return isNaN(d) ? ts : d.toLocaleString();
+}
+
+function escapeHtml(text) {
+  return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function populateRuleFilter(rules) {
+  const sel = document.getElementById('ruleFilter');
+  const current = sel.value;
+  // Only rebuild if rules changed
+  if (sel.options.length - 1 === rules.length) return;
+  sel.innerHTML = '<option value="">All Rules</option>';
+  rules.sort().forEach(r => {
+    const opt = document.createElement('option');
+    opt.value = r;
+    opt.textContent = formatRule(r);
+    sel.appendChild(opt);
+  });
+  sel.value = current;
+}
+
+function showToast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = isError ? 'var(--critical)' : 'var(--green)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+</script>
+</body>
+</html>
