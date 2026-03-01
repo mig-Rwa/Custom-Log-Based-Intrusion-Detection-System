@@ -1,0 +1,63 @@
+Mar  1 02:14:01 webserver sshd[12001]: Failed password for admin from 203.0.113.50 port 49821 ssh2
+Mar  1 02:14:03 webserver sshd[12001]: Failed password for admin from 203.0.113.50 port 49821 ssh2
+Mar  1 02:14:05 webserver sshd[12002]: Failed password for admin from 203.0.113.50 port 49822 ssh2
+Mar  1 02:14:07 webserver sshd[12003]: Failed password for admin from 203.0.113.50 port 49823 ssh2
+Mar  1 02:14:09 webserver sshd[12004]: Failed password for admin from 203.0.113.50 port 49824 ssh2
+Mar  1 02:14:11 webserver sshd[12005]: Failed password for admin from 203.0.113.50 port 49825 ssh2
+Mar  1 02:14:13 webserver sshd[12006]: Failed password for admin from 203.0.113.50 port 49826 ssh2
+Mar  1 02:14:15 webserver sshd[12007]: message repeated 3 times: [ Failed password for admin from 203.0.113.50 port 49827 ssh2]
+Mar  1 02:14:22 webserver sshd[12008]: pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=203.0.113.50  user=admin
+Mar  1 02:15:00 webserver sshd[12100]: Accepted password for admin from 10.0.0.5 port 52100 ssh2
+Mar  1 02:15:01 webserver sshd[12100]: pam_unix(sshd:session): session opened for user admin by (uid=0)
+Mar  1 03:22:10 webserver sshd[12301]: Invalid user test from 198.51.100.23 port 44001 ssh2
+Mar  1 03:22:12 webserver sshd[12302]: Invalid user guest from 198.51.100.23 port 44002 ssh2
+Mar  1 03:22:14 webserver sshd[12303]: Invalid user oracle from 198.51.100.23 port 44003 ssh2
+Mar  1 03:22:16 webserver sshd[12304]: Invalid user postgres from 198.51.100.23 port 44004 ssh2
+Mar  1 03:22:18 webserver sshd[12305]: Invalid user mysql from 198.51.100.23 port 44005 ssh2
+Mar  1 03:22:20 webserver sshd[12306]: input_userauth_request: invalid user ftpuser [preauth]
+Mar  1 03:22:22 webserver sshd[12307]: Failed password for invalid user test from 198.51.100.23 port 44006 ssh2
+Mar  1 03:22:24 webserver sshd[12308]: Failed password for invalid user guest from 198.51.100.23 port 44007 ssh2
+Mar  1 03:22:26 webserver sshd[12309]: Failed password for invalid user oracle from 198.51.100.23 port 44008 ssh2
+Mar  1 04:00:00 webserver sshd[12500]: Failed password for root from 45.33.32.156 port 55010 ssh2
+Mar  1 04:00:02 webserver sshd[12501]: Failed password for root from 45.33.32.156 port 55011 ssh2
+Mar  1 04:00:04 webserver sshd[12502]: Failed password for root from 45.33.32.156 port 55012 ssh2
+Mar  1 04:00:06 webserver sshd[12503]: Failed password for root from 45.33.32.156 port 55013 ssh2
+Mar  1 04:00:08 webserver sshd[12504]: Failed password for root from 45.33.32.156 port 55014 ssh2
+Mar  1 04:00:10 webserver sshd[12505]: ROOT LOGIN REFUSED from 45.33.32.156
+Mar  1 04:00:12 webserver sshd[12506]: pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=45.33.32.156  user=root
+Mar  1 05:10:00 webserver sudo[13001]: pam_unix(sudo:auth): authentication failure; logname=jdoe uid=1001 euid=0 tty=/dev/pts/0 ruser=jdoe rhost=  user=jdoe
+Mar  1 05:10:05 webserver sudo[13002]:     jdoe : 3 incorrect password attempts ; TTY=pts/0 ; PWD=/home/jdoe ; USER=root ; COMMAND=/bin/bash
+Mar  1 05:10:10 webserver sudo[13003]:     jdoe : user NOT in sudoers ; TTY=pts/0 ; PWD=/home/jdoe ; USER=root ; COMMAND=/bin/su -
+Mar  1 05:10:15 webserver sudo[13004]: pam_unix(sudo:auth): authentication failure; logname=jdoe uid=1001 euid=0 tty=/dev/pts/0 ruser=jdoe rhost=  user=jdoe
+Mar  1 05:10:20 webserver sudo[13005]:     jdoe : 3 incorrect password attempts ; TTY=pts/0 ; PWD=/home/jdoe ; USER=root ; COMMAND=/usr/bin/passwd root
+Mar  1 06:30:00 webserver sshd[14001]: Connection closed by 192.0.2.100 port 60001 [preauth]
+Mar  1 06:30:00 webserver sshd[14002]: Connection closed by 192.0.2.100 port 60002 [preauth]
+Mar  1 06:30:00 webserver sshd[14003]: Connection closed by 192.0.2.100 port 60003 [preauth]
+Mar  1 06:30:01 webserver sshd[14004]: Connection closed by 192.0.2.100 port 60004 [preauth]
+Mar  1 06:30:01 webserver sshd[14005]: Connection closed by 192.0.2.100 port 60005 [preauth]
+Mar  1 06:30:01 webserver sshd[14006]: Connection closed by 192.0.2.100 port 60006 [preauth]
+Mar  1 06:30:01 webserver sshd[14007]: Connection closed by 192.0.2.100 port 60007 [preauth]
+Mar  1 06:30:01 webserver sshd[14008]: Connection closed by 192.0.2.100 port 60008 [preauth]
+Mar  1 06:30:01 webserver sshd[14009]: Connection closed by 192.0.2.100 port 60009 [preauth]
+Mar  1 06:30:01 webserver sshd[14010]: Connection closed by 192.0.2.100 port 60010 [preauth]
+Mar  1 06:30:02 webserver sshd[14011]: Connection closed by 192.0.2.100 port 60011 [preauth]
+Mar  1 06:30:02 webserver sshd[14012]: Did not receive identification string from 192.0.2.100 port 60012
+Mar  1 06:30:02 webserver sshd[14013]: refused connect from 192.0.2.100 (192.0.2.100)
+Mar  1 07:00:00 webserver sshd[14100]: Accepted publickey for deployer from 10.0.0.10 port 52200 ssh2
+Mar  1 07:00:01 webserver sshd[14100]: pam_unix(sshd:session): session opened for user deployer by (uid=0)
+Mar  1 07:05:00 webserver sshd[14100]: pam_unix(sshd:session): session closed for user deployer
+Mar  1 08:00:00 webserver sshd[15001]: Failed password for ubuntu from 172.16.0.50 port 39001 ssh2
+Mar  1 08:00:02 webserver sshd[15002]: Failed password for ubuntu from 172.16.0.50 port 39002 ssh2
+Mar  1 08:00:04 webserver sshd[15003]: Accepted password for ubuntu from 172.16.0.50 port 39003 ssh2
+Mar  1 08:30:00 webserver sshd[15100]: pam_unix(sshd:session): session opened for user admin by (uid=0)
+Mar  1 08:30:01 webserver sshd[15100]: pam_unix(sshd:session): session closed for user admin
+Mar  1 08:30:02 webserver sshd[15101]: pam_unix(sshd:session): session opened for user admin by (uid=0)
+Mar  1 08:30:03 webserver sshd[15101]: pam_unix(sshd:session): session closed for user admin
+Mar  1 08:30:04 webserver sshd[15102]: pam_unix(sshd:session): session opened for user admin by (uid=0)
+Mar  1 08:30:05 webserver sshd[15102]: pam_unix(sshd:session): session closed for user admin
+Mar  1 08:30:06 webserver sshd[15103]: pam_unix(sshd:session): session opened for user admin by (uid=0)
+Mar  1 08:30:07 webserver sshd[15103]: pam_unix(sshd:session): session closed for user admin
+Mar  1 08:30:08 webserver sshd[15104]: pam_unix(sshd:session): session opened for user admin by (uid=0)
+Mar  1 08:30:09 webserver sshd[15104]: pam_unix(sshd:session): session closed for user admin
+Mar  1 08:30:10 webserver sshd[15105]: pam_unix(sshd:session): session opened for user admin by (uid=0)
+Mar  1 08:30:11 webserver sshd[15105]: pam_unix(sshd:session): session closed for user admin

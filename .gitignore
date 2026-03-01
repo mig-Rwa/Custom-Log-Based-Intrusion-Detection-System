@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# Alert output (generated at runtime)
+alerts/*.json
+alerts/*.log
+!alerts/.gitkeep
+
+# OS
+Thumbs.db
+.DS_Store
