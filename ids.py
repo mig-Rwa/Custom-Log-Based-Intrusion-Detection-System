@@ -245,6 +245,7 @@ Examples:
   python ids.py --source /var/log/auth.log   # Scan one ad-hoc log file
   python ids.py --interval 10 -m         # Continuous mode, poll every 10s
   python ids.py --output alerts/run1.json    # Redirect alert output file
+  python ids.py --dashboard              # Launch the web dashboard (localhost)
         """
     )
     parser.add_argument(
@@ -278,6 +279,22 @@ Examples:
         default=None,
         help="Path to write alert output (overrides config alerting.output_file)"
     )
+    parser.add_argument(
+        "--dashboard", "-d",
+        action="store_true",
+        help="Launch the web dashboard instead of running a scan"
+    )
+    parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="Dashboard bind address (default: 127.0.0.1; use 0.0.0.0 to expose)"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=5000,
+        help="Dashboard port (default: 5000)"
+    )
 
     args = parser.parse_args()
 
@@ -288,6 +305,12 @@ Examples:
         generator.generate_all()
         print("[*] Sample logs generated in logs/ directory")
         return
+
+    # Launch the web dashboard if requested
+    if args.dashboard:
+        from dashboard import run_dashboard
+        run_dashboard(host=args.host, port=args.port)
+        return 0
 
     # Build CLI overrides so they apply before modules read the config
     overrides = {}

@@ -198,15 +198,41 @@ def api_clear():
 
 # ── Entry point ──────────────────────────────────────────────
 
-if __name__ == "__main__":
-    # Run initial scan on startup so dashboard isn't empty
-    print("\n[*] Running initial IDS scan...")
-    try:
-        count = run_ids_scan()
-        print(f"[*] Initial scan complete — {count} alerts detected")
-    except Exception as e:
-        print(f"[!] Initial scan failed: {e}")
+def run_dashboard(host: str = "127.0.0.1", port: int = 5000, initial_scan: bool = True):
+    """Start the web dashboard.
 
-    print("\n[*] Starting dashboard at http://localhost:5000")
+    Args:
+        host: Interface to bind to. Defaults to 127.0.0.1 (localhost only)
+              for safety. Use "0.0.0.0" to expose it on your network.
+        port: TCP port to serve on.
+        initial_scan: Run a scan on startup so the dashboard isn't empty.
+    """
+    if initial_scan:
+        print("\n[*] Running initial IDS scan...")
+        try:
+            count = run_ids_scan()
+            print(f"[*] Initial scan complete — {count} alerts detected")
+        except Exception as e:
+            print(f"[!] Initial scan failed: {e}")
+
+    display_host = "localhost" if host in ("127.0.0.1", "0.0.0.0") else host
+    print(f"\n[*] Starting dashboard at http://{display_host}:{port}")
+    if host == "0.0.0.0":
+        print("[!] Warning: bound to 0.0.0.0 — reachable by other devices on your network")
     print("[*] Press CTRL+C to stop\n")
-    app.run(debug=False, host="0.0.0.0", port=5000)
+    app.run(debug=False, host=host, port=port)
+
+
+if __name__ == "__main__":
+    import argparse
+
+    cli = argparse.ArgumentParser(description="IDS Web Dashboard")
+    cli.add_argument("--host", default="127.0.0.1",
+                     help="Interface to bind to (default: 127.0.0.1; use 0.0.0.0 to expose)")
+    cli.add_argument("--port", type=int, default=5000, help="Port to serve on (default: 5000)")
+    cli.add_argument("--no-scan", action="store_true",
+                     help="Skip the initial scan on startup")
+    dash_args = cli.parse_args()
+
+    run_dashboard(host=dash_args.host, port=dash_args.port,
+                  initial_scan=not dash_args.no_scan)
