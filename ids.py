@@ -116,17 +116,23 @@ class IntrusionDetectionSystem:
         print(f"{'='*55}\n")
 
     def run_once(self):
-        """Run a single detection pass on all configured log files."""
+        """Run a single detection pass on all configured log files.
+
+        Returns an exit code: 0 on success, 2 if no configured log
+        source could be found (useful for scripting/automation).
+        """
         print(BANNER)
         print(f"[*] Running single detection pass at {datetime.now().isoformat()}")
         self.stats["start_time"] = datetime.now()
 
         log_sources = self.config.get("log_sources", {})
+        sources_found = 0
 
         for source_name, log_path in log_sources.items():
             if not os.path.exists(log_path):
                 print(f"[!] Log file not found: {log_path} — skipping")
                 continue
+            sources_found += 1
 
             print(f"\n[*] Parsing {source_name}: {log_path}")
             parsed_events = self.parser.parse_file(log_path, source_name)
@@ -152,6 +158,11 @@ class IntrusionDetectionSystem:
         # Write alerts to file
         self.alert_manager.flush()
         print(f"[*] Alerts saved to: {self.config.get('alerting.output_file')}")
+
+        if sources_found == 0:
+            print("[!] No log sources were found — check your config or --source path.")
+            return 2
+        return 0
 
     def run_continuous(self):
         """Run IDS in continuous monitoring mode."""
@@ -179,6 +190,11 @@ class IntrusionDetectionSystem:
             for source_name, log_path in log_sources.items():
                 if not os.path.exists(log_path):
                     continue
+
+                # Pick up log files that appeared after startup
+                if source_name not in file_positions:
+                    print(f"[*] Log file now available: {log_path}")
+                    file_positions[source_name] = 0
 
                 # Read new lines since last position
                 current_pos = file_positions.get(source_name, 0)
@@ -288,9 +304,10 @@ Examples:
 
     if args.continuous:
         ids.run_continuous()
+        return 0
     else:
-        ids.run_once()
+        return ids.run_once()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
