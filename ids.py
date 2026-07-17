@@ -77,9 +77,17 @@ class IntrusionDetectionSystem:
         else:
             print("[*] SIEM forwarding disabled (enable in config)")
 
-        # Register signal handlers for graceful shutdown
-        signal.signal(signal.SIGINT, self._shutdown_handler)
-        signal.signal(signal.SIGTERM, self._shutdown_handler)
+        # Register signal handlers for graceful shutdown.
+        # SIGTERM is not available on all platforms (e.g. Windows), so
+        # register each handler defensively to stay cross-platform.
+        for sig_name in ("SIGINT", "SIGTERM"):
+            sig = getattr(signal, sig_name, None)
+            if sig is not None:
+                try:
+                    signal.signal(sig, self._shutdown_handler)
+                except (ValueError, OSError):
+                    # Not supported in this context (e.g. non-main thread)
+                    pass
 
     def _shutdown_handler(self, signum, frame):
         """Handle graceful shutdown on CTRL+C."""
