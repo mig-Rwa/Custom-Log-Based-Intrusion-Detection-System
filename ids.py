@@ -22,6 +22,15 @@ from datetime import datetime
 PROJECT_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+# Ensure UTF-8 console output so banners, checkmarks, and emoji render
+# correctly even when stdout/stderr are redirected to a file or pipe
+# (Windows defaults to cp1252, which crashes on these characters).
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+
 from modules.config_loader import ConfigLoader
 from modules.log_parser import LogParser
 from modules.detection_engine import DetectionEngine
