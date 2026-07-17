@@ -40,7 +40,7 @@ BANNER = r"""
 class IntrusionDetectionSystem:
     """Main IDS orchestrator — ties all modules together."""
 
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, overrides: dict = None):
         self.running = False
         self.stats = {
             "start_time": None,
@@ -52,6 +52,12 @@ class IntrusionDetectionSystem:
         # Load configuration
         print("[*] Loading configuration...")
         self.config = ConfigLoader(config_path)
+
+        # Apply CLI flag overrides before modules read the config
+        if overrides:
+            for key, value in overrides.items():
+                self.config.set(key, value)
+                print(f"[*] Config override: {key} = {value}")
 
         # Initialize modules
         print("[*] Initializing log parser...")
@@ -203,6 +209,9 @@ Examples:
   python ids.py --continuous             # Continuous monitoring mode
   python ids.py --config custom.yaml     # Use custom config file
   python ids.py --generate-logs          # Generate sample logs for testing
+  python ids.py --source /var/log/auth.log   # Scan one ad-hoc log file
+  python ids.py --interval 10 -m         # Continuous mode, poll every 10s
+  python ids.py --output alerts/run1.json    # Redirect alert output file
         """
     )
     parser.add_argument(
@@ -220,6 +229,22 @@ Examples:
         action="store_true",
         help="Generate sample log files for testing"
     )
+    parser.add_argument(
+        "--interval", "-i",
+        type=int,
+        default=None,
+        help="Polling interval in seconds for continuous mode (overrides config)"
+    )
+    parser.add_argument(
+        "--source", "-s",
+        default=None,
+        help="Scan a single ad-hoc log file instead of the configured sources"
+    )
+    parser.add_argument(
+        "--output", "-o",
+        default=None,
+        help="Path to write alert output (overrides config alerting.output_file)"
+    )
 
     args = parser.parse_args()
 
@@ -231,8 +256,18 @@ Examples:
         print("[*] Sample logs generated in logs/ directory")
         return
 
+    # Build CLI overrides so they apply before modules read the config
+    overrides = {}
+    if args.interval is not None:
+        overrides["general.monitor_interval"] = args.interval
+    if args.output is not None:
+        overrides["alerting.output_file"] = args.output
+    if args.source is not None:
+        # Replace configured sources with the single ad-hoc file
+        overrides["log_sources"] = {"adhoc": args.source}
+
     # Run IDS
-    ids = IntrusionDetectionSystem(args.config)
+    ids = IntrusionDetectionSystem(args.config, overrides=overrides)
 
     if args.continuous:
         ids.run_continuous()

@@ -59,6 +59,20 @@ class ConfigLoader:
                 return default
         return value
 
+    def set(self, key: str, value):
+        """
+        Set a config value using dot notation, creating nested
+        dictionaries as needed. Used to apply CLI flag overrides.
+        Example: config.set("general.monitor_interval", 10)
+        """
+        keys = key.split(".")
+        target = self._data
+        for k in keys[:-1]:
+            if not isinstance(target.get(k), dict):
+                target[k] = {}
+            target = target[k]
+        target[keys[-1]] = value
+
     def get_rules(self):
         """Return all enabled detection rules."""
         rules = self._data.get("detection_rules", {})
