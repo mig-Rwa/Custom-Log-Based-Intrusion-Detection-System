@@ -402,6 +402,9 @@
     <button class="btn btn-danger" id="clearBtn" onclick="clearAlerts()">
       <i data-feather="trash-2" style="width:13px;height:13px;"></i> Clear
     </button>
+    <button class="btn" id="exportBtn" onclick="exportCSV()">
+      <i data-feather="download" style="width:13px;height:13px;"></i> Export CSV
+    </button>
     <button class="btn btn-primary" id="scanBtn" onclick="runScan()">
       <i data-feather="refresh-cw" style="width:13px;height:13px;" id="scanIcon"></i> Run Scan
     </button>
@@ -724,6 +727,16 @@ async function clearAlerts() {
   } catch(e) {
     showToast('❌ Failed to clear alerts', true);
   }
+}
+
+// ── Export CSV ─────────────────────────────────────────────
+function exportCSV() {
+  const search = document.getElementById('searchInput').value.trim();
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+  const query = params.toString();
+  window.location.href = '/api/alerts/export' + (query ? '?' + query : '');
+  showToast('⬇️ Exporting alerts to CSV...');
 }
 
 // ── Charts ─────────────────────────────────────────────────

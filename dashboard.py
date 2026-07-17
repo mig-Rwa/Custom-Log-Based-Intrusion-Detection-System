@@ -13,6 +13,8 @@ Features:
   - Auto-refreshes every 5 seconds
 """
 
+import csv
+import io
 import json
 import os
 import sys
@@ -21,7 +23,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from collections import Counter, defaultdict
 
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, Response
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -194,6 +196,55 @@ def api_clear():
         return jsonify({"status": "ok", "message": "All alerts cleared"})
     except IOError as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/alerts/export")
+def api_export():
+    """Export alerts as a downloadable CSV file (optionally filtered)."""
+    alerts = load_alerts()
+
+    severity_filter = request.args.get("severity", "").upper()
+    rule_filter = request.args.get("rule", "")
+    search = request.args.get("search", "").lower()
+
+    if severity_filter:
+        alerts = [a for a in alerts if a.get("severity") == severity_filter]
+    if rule_filter:
+        alerts = [a for a in alerts if a.get("rule_name") == rule_filter]
+    if search:
+        alerts = [a for a in alerts if search in json.dumps(a).lower()]
+
+    alerts.sort(key=lambda a: a.get("timestamp", ""), reverse=True)
+
+    columns = [
+        "timestamp", "severity", "rule_name", "description",
+        "source_ip", "event_count", "mitre_tactic",
+        "mitre_technique_id", "mitre_technique_name",
+    ]
+
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(columns)
+    for a in alerts:
+        mitre = a.get("mitre_attack", {}) or {}
+        writer.writerow([
+            a.get("timestamp", ""),
+            a.get("severity", ""),
+            a.get("rule_name", ""),
+            a.get("description", ""),
+            a.get("source_ip", ""),
+            a.get("event_count", ""),
+            mitre.get("tactic", ""),
+            mitre.get("technique_id", ""),
+            mitre.get("technique_name", ""),
+        ])
+
+    filename = f"ids_alerts_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    return Response(
+        buffer.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 # ── Entry point ──────────────────────────────────────────────
